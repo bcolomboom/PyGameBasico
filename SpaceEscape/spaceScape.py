@@ -14,8 +14,17 @@ import pygame
 import random
 import os
 
+from PIL import Image
+
+from SpaceEscape.Background import durations
+
+
+
+
 # Inicializa o PyGame
 pygame.init()
+
+
 
 # ----------------------------------------------------------
 # 🔧 CONFIGURAÇÕES GERAIS DO JOGO
@@ -31,13 +40,41 @@ pygame.display.set_caption("🚀 Space Escape")
 # e troque apenas os nomes abaixo.
 
 ASSETS = {
-    "background": "fundo_espacial.png",                         # imagem de fundo
+    "background": "spacegif.gif",                               # imagem de fundo
     "player": "nave001.png",                                    # imagem da nave
     "meteor": "meteoro001.png",                                 # imagem do meteoro
     "sound_point": "classic-game-action-positive-5-224402.mp3", # som ao desviar com sucesso
     "sound_hit": "stab-f-01-brvhrtz-224599.mp3",                # som de colisão
     "music": "game-gaming-background-music-385611.mp3"          # música de fundo. direitos: Music by Maksym Malko from Pixabay
 }
+
+def load_gif_frames(gif_path):
+    frames = []
+    durations = []  # tempo em ms que cada frame deve ficar na tela
+
+    with Image.open(gif_path) as img:
+        for frame in range(img.n_frames):
+            img.seek(frame)
+            # Converte para RGBA se tiver transparência
+            frame_img = img.convert("RGBA")
+
+            # Pega o raw data do frame
+            raw_data = frame_img.tobytes()
+            size = frame_img.size
+
+            # Cria uma surface do pygame a partir do frame
+            pygame_surface = pygame.image.frombuffer(raw_data, size, "RGBA")
+            frames.append(pygame_surface)
+
+            # Pega a duração do frame (em milissegundos)
+            duration = img.info.get("duration", 100)  # padrão 100ms se não tiver
+            durations.append(duration)
+
+    return frames, durations
+
+frames, durations = load_gif_frames(ASSETS["background"])
+
+
 
 # ----------------------------------------------------------
 # 🖼️ CARREGAMENTO DE IMAGENS E SONS
