@@ -1,6 +1,7 @@
 import pygame
 from Background2 import AnimatedBackground
 from Ship import Nave
+from StartGame import StartScreen
 
 pygame.init()
 
@@ -11,8 +12,13 @@ clock = pygame.time.Clock()
 
 # Instancia os módulos
 background = AnimatedBackground("spacegif.gif", LARGURA, ALTURA, True)
+start_screen = StartScreen(tela, background)
 nave = Nave(LARGURA, ALTURA)
 todos_sprites = pygame.sprite.Group(nave)
+
+ESTADO_START = 0
+ESTADO_JOGANDO = 1
+estado = ESTADO_START
 
 rodando = True
 while rodando:
@@ -23,13 +29,22 @@ while rodando:
         if event.type == pygame.QUIT:
             rodando = False
 
+        if event.type == pygame.KEYDOWN:
+            if estado == ESTADO_START and event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                estado = ESTADO_JOGANDO
+
     # Atualiza tudo
     background.update(dt)
-    todos_sprites.update(teclas)
 
-    # Desenha tudo
-    background.draw(tela)
-    todos_sprites.draw(tela)
+    if estado == ESTADO_START:
+        # Tela de início
+        start_screen.draw()
+    elif estado == ESTADO_JOGANDO:
+        # Jogo normal
+        todos_sprites.update(teclas)
+
+        background.draw(tela)
+        todos_sprites.draw(tela)
 
     pygame.display.flip()
 
