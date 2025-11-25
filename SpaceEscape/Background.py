@@ -1,88 +1,46 @@
 import pygame
-from PIL import Image  # pip install pillow
-import io
+from PIL import Image
 import os
 
 
-# =============================================
-# Função para carregar todos os frames de um GIF
-# =============================================
-def load_gif_frames(gif_path):
-    frames = []
-    durations = []  # tempo em ms que cada frame deve ficar na tela
+class AnimatedBackground:
+    def __init__(self, gif_path, screen_width, screen_height, rotacionar_180=False):
+        self.frames, self.durations = self.load_gif_frames(gif_path)
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self.rotacionar_180 = rotacionar_180
 
-    with Image.open(gif_path) as img:
-        for frame in range(img.n_frames):
-            img.seek(frame)
-            # Converte para RGBA se tiver transparência
-            frame_img = img.convert("RGBA")
+        # Pré-redimensiona todos os frames (melhor performance)
+        self.scaled_frames = []
+        for frame in self.frames:
+            scaled = pygame.transform.scale(frame, (screen_width, screen_height))
+            if self.rotacionar_180:
+                scaled = pygame.transform.rotate(scaled, 180)  # <<< gira 180°
+            self.scaled_frames.append(scaled)
 
-            # Pega o raw data do frame
-            raw_data = frame_img.tobytes()
-            size = frame_img.size
+        self.current_frame = 0
+        self.timer = 0
 
-            # Cria uma surface do pygame a partir do frame
-            pygame_surface = pygame.image.frombuffer(raw_data, size, "RGBA")
-            frames.append(pygame_surface)
+    def load_gif_frames(self, gif_path):
+        frames = []
+        durations = []
+        with Image.open(gif_path) as img:
+            for frame_idx in range(img.n_frames):
+                img.seek(frame_idx)
+                frame_img = img.convert("RGBA")
+                raw_data = frame_img.tobytes()
+                size = frame_img.size
+                pygame_surface = pygame.image.frombuffer(raw_data, size, "RGBA")
+                frames.append(pygame_surface)
+                durations.append(img.info.get("duration", 100))
+        return frames, durations
 
-            # Pega a duração do frame (em milissegundos)
-            duration = img.info.get("duration", 100)  # padrão 100ms se não tiver
-            durations.append(duration)
+    def update(self, dt):
+        self.timer += dt
+        if self.timer >= self.durations[self.current_frame]:
+            self.timer = 0
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
 
-    return frames, durations
 
-
-# =============================================
-# Código principal
-# =============================================
-pygame.init()
-
-# Configurações da tela
-LARGURA, ALTURA = 800, 600
-tela = pygame.display.set_mode((LARGURA, ALTURA))
-pygame.display.set_caption("GIF como Background no Pygame")
-clock = pygame.time.Clock()
-
-# Carrega o GIF (coloque seu GIF na mesma pasta ou coloque o caminho completo)
-gif_path = "spacegif.gif"  # <-- MUDE AQUI PARA O NOME DO SEU GIF
-
-if not os.path.exists(gif_path):
-    print(f"Arquivo {gif_path} não encontrado!")
-    pygame.quit()
-    exit()
-
-frames, durations = load_gif_frames(gif_path)
-
-# Controle da animação
-frame_atual = 0
-tempo_acumulado = 0
-
-rodando = True
-while rodando:
-    dt = clock.tick(60)  # delta time em milissegundos
-    tempo_acumulado += dt
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            rodando = False
-
-    # Troca de frame quando o tempo do frame atual acabar
-    if tempo_acumulado >= durations[frame_atual]:
-        tempo_acumulado = 0
-        frame_atual = (frame_atual + 1) % len(frames)
-
-    # Desenha o frame atual como background (redimensiona para caber na tela)
-    frame_redimensionado = pygame.transform.scale(
-        frames[frame_atual], (LARGURA, ALTURA)
-    )
-    tela.blit(frame_redimensionado, (0, 0))
-
-    # Aqui você desenha o resto do seu jogo por cima...
-    # Exemplo: um texto simples
-    font = pygame.font.SysFont(None, 55)
-    texto = font.render("", True, (255, 255, 255))
-    tela.blit(texto, (100, 100))
-
-    pygame.display.flip()
-
-pygame.quit()
+    def draw(self, screen):
+        screen.blit(self.scaled_frames[self.current_frame], (0, 0))

@@ -3,7 +3,7 @@ from PIL import Image
 
 def extract_frames_gif(input_path, output_prefix="frame"):
     # Open the GIF file
-    img = Image.open("spacegif.gif")
+    img = Image.open("assets/bg/spacegif.gif")
 
     # Check if it's actually animated
     if not getattr(img, "is_animated", False):
